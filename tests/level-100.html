@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Level 100 checks</title>
+  </head>
+  <body>
+    <h1>Level 100 checks</h1>
+    <p id="result">Running checks...</p>
+    <iframe src="../index.html" title="TV Show Project" hidden></iframe>
+    <script>
+      document.querySelector("iframe").addEventListener("load", (event) => {
+        const page = event.target.contentWindow;
+        const result = document.getElementById("result");
+        try {
+          const episodes = page.getAllEpisodes();
+          const cards = page.document.querySelectorAll("article");
+          if (cards.length !== episodes.length) {
+            throw new Error(`Expected ${episodes.length} episodes, found ${cards.length}.`);
+          }
+
+          episodes.forEach((episode, index) => {
+            const card = cards[index];
+            const code = `S${String(episode.season).padStart(2, "0")}E${String(episode.number).padStart(2, "0")}`;
+            const summary = new DOMParser().parseFromString(episode.summary, "text/html").body.textContent;
+            if (!card.querySelector("h2")?.textContent.includes(episode.name) ||
+                card.querySelector(".episode-code")?.textContent !== code ||
+                card.querySelector("img")?.src !== episode.image.medium.replace(/^http:/, "https:") ||
+                card.querySelector(".episode-summary")?.textContent !== summary) {
+              throw new Error(`Episode ${index + 1} is missing required details.`);
+            }
+          });
+
+          const credit = page.document.querySelector('a[href="https://www.tvmaze.com/"]');
+          if (!credit || !credit.textContent.includes("TVMaze")) {
+            throw new Error("TVMaze credit and link are missing.");
+          }
+          result.textContent = `Passed: ${episodes.length} episodes and TVMaze credit.`;
+        } catch (error) {
+          result.textContent = `Failed: ${error.message}`;
+          console.error(error);
+        }
+      });
+    </script>
+  </body>
+</html>
